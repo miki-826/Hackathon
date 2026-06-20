@@ -112,6 +112,9 @@ function HelpOverlay({ onClose }: { onClose: () => void }) {
         <p className="mt-4 font-mincho text-xs text-washi/60">
           速さ・残り時間は表示されません。表示されるのは「斬った数」だけ。
         </p>
+        <p className="mt-3 font-mincho text-xs leading-relaxed text-kin/90">
+          ⚠ Zoom等の他アプリでカメラ使用中はカメラを起動できません。先に終了してください。
+        </p>
         <div className="mt-6 text-center">
           <button
             className="rounded border border-kin/60 px-6 py-2 font-mincho text-washi hover:bg-kin/15"

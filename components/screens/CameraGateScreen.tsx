@@ -37,6 +37,12 @@ export default function CameraGateScreen({
             で処理し、サーバーへ送信しません。
           </p>
 
+          <p className="mt-4 rounded border border-kin/40 bg-kin/10 px-4 py-3 font-mincho text-xs leading-relaxed text-washi/85">
+            ⚠ Zoom・Google Meet・Teams などの他アプリがカメラを使用中だと、
+            カメラを起動できません。先にそれらのアプリを終了してから
+            「カメラを許可して始める」を押してください。
+          </p>
+
           {camError && (
             <p className="mt-4 rounded border border-shu/60 bg-shu/15 px-4 py-2 font-mincho text-sm text-washi">
               {camError}

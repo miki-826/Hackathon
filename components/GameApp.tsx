@@ -22,6 +22,14 @@ import ResultScreen from "@/components/screens/ResultScreen";
 
 const MOCK_REFERENCE = 2.6;
 
+// キャリブレーション（手刀の素振り検出）の閾値（正規化ステージ座標 units/sec）
+// ゆっくりの素振りも拾えるよう開始閾値は低め。基準速度は全力素振りのピークを採用するため、
+// 低めの閾値でも正規化（reference）の妥当性は保たれる。
+const CALIB_START = 0.5; // この速度を超えたら一振り開始とみなす
+const CALIB_END = 0.22; // この速度を下回ったら一振り終了（ヒステリシス）
+const CALIB_METER_MAX = 3.0; // 勢いメーターの満タン基準
+const CALIB_TARGET = 3; // 必要な素振り回数
+
 type HandState = {
   present: boolean;
   cx: number;
@@ -38,6 +46,7 @@ export default function GameApp() {
   const [cutCount, setCutCount] = useState(0);
   const [remainMs, setRemainMs] = useState(40000);
   const [handDetected, setHandDetected] = useState(false);
+  const [calibSwings, setCalibSwings] = useState(0);
   const [camError, setCamError] = useState<string | null>(null);
   const [result, setResult] = useState<{
     cutCount: number;
@@ -54,7 +63,12 @@ export default function GameApp() {
   const phaseRef = useRef<GameScreen>("title");
   const camLoopRef = useRef<number>(0);
   const lastVideoTime = useRef<number>(-1);
-  const calibPeak = useRef<number>(0);
+  const calibLevelRef = useRef<number>(0);
+  const calibSwingsRef = useRef<number>(0);
+  const calibMaxPeakRef = useRef<number>(0);
+  const calibActiveRef = useRef<boolean>(false);
+  const calibSwingPeakRef = useRef<number>(0);
+  const calibLastRef = useRef<{ t: number; x: number; y: number } | null>(null);
   const referenceRef = useRef<number>(MOCK_REFERENCE);
   const stableCount = useRef<number>(0);
   const flags = useRef<{ demo: boolean; debug: boolean }>({ demo: false, debug: false });
@@ -145,7 +159,9 @@ export default function GameApp() {
       startCamLoop();
       return true;
     } catch {
-      setCamError("カメラを使用できません。Mock Modeで続けます。");
+      setCamError(
+        "カメラを使用できません。Zoom等の他アプリがカメラ使用中の可能性があります。終了後に再試行するか、Mock Modeで続けます。"
+      );
       return false;
     }
   }, []);
@@ -170,10 +186,32 @@ export default function GameApp() {
             stableCount.current = Math.min(stableCount.current + 1, 20);
 
             const phase = phaseRef.current;
-            if (phase === "calibration" && prev.present) {
-              const d = Math.hypot(cx - prev.cx, cy - prev.cy);
-              const sp = d / (1 / 30);
-              if (sp > calibPeak.current) calibPeak.current = sp;
+            if (phase === "calibration") {
+              const t = performance.now();
+              const last = calibLastRef.current;
+              if (last) {
+                const dt = Math.max((t - last.t) / 1000, 1 / 120);
+                const d = Math.hypot(cx - last.x, cy - last.y);
+                const sp = d / dt; // units/sec
+                calibLevelRef.current = sp;
+                if (calibActiveRef.current) {
+                  if (sp > calibSwingPeakRef.current) calibSwingPeakRef.current = sp;
+                  if (sp < CALIB_END) {
+                    // 一振り終了 → ピークを記録してカウント
+                    calibActiveRef.current = false;
+                    if (calibSwingPeakRef.current > calibMaxPeakRef.current) {
+                      calibMaxPeakRef.current = calibSwingPeakRef.current;
+                    }
+                    calibSwingsRef.current += 1;
+                    setCalibSwings(calibSwingsRef.current);
+                    calibSwingPeakRef.current = 0;
+                  }
+                } else if (sp > CALIB_START) {
+                  calibActiveRef.current = true;
+                  calibSwingPeakRef.current = sp;
+                }
+              }
+              calibLastRef.current = { t, x: cx, y: cy };
             }
             if (phase === "playing" && engineRef.current) {
               engineRef.current.pushHand({ x: cx, y: cy, handScale: scale, confidence: 0.9 });
@@ -181,6 +219,8 @@ export default function GameApp() {
           } else {
             handRef.current = { ...handRef.current, present: false, conf: 0 };
             stableCount.current = Math.max(stableCount.current - 1, 0);
+            calibLastRef.current = null; // 手が消えたら間隔をリセット
+            calibLevelRef.current *= 0.8;
           }
         } catch {
           /* 推論失敗フレームは無視 */
@@ -233,6 +273,26 @@ export default function GameApp() {
       ctx.beginPath();
       ctx.arc(h.cx * cw, h.cy * ch, Math.min(cw, ch) * 0.07, 0, Math.PI * 2);
       ctx.stroke();
+    }
+
+    // キャリブレーション中は手刀の勢いメーターを表示
+    if (phaseRef.current === "calibration") {
+      ctx.shadowBlur = 0;
+      const level = Math.min(1, calibLevelRef.current / CALIB_METER_MAX);
+      const bw = cw * 0.5;
+      const bh = Math.max(12, ch * 0.022);
+      const bx = (cw - bw) / 2;
+      const by = ch * 0.82;
+      ctx.fillStyle = "rgba(255,255,255,0.14)";
+      ctx.fillRect(bx, by, bw, bh);
+      const g = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+      g.addColorStop(0, "#e7eef7");
+      g.addColorStop(1, "#c8a24a");
+      ctx.fillStyle = g;
+      ctx.fillRect(bx, by, bw * level, bh);
+      ctx.strokeStyle = "rgba(200,162,74,0.65)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(bx, by, bw, bh);
     }
   }, []);
 
@@ -320,13 +380,21 @@ export default function GameApp() {
   }, []);
 
   const onCheckNext = useCallback(() => {
-    calibPeak.current = 0;
+    calibSwingsRef.current = 0;
+    calibMaxPeakRef.current = 0;
+    calibSwingPeakRef.current = 0;
+    calibActiveRef.current = false;
+    calibLastRef.current = null;
+    calibLevelRef.current = 0;
+    setCalibSwings(0);
     setScreen("calibration");
   }, []);
 
   const onCalibrationDone = useCallback(() => {
-    const peak = calibPeak.current;
-    referenceRef.current = Math.min(6, Math.max(1.4, peak * 0.8 || MOCK_REFERENCE));
+    const peak = calibMaxPeakRef.current;
+    // 全力の素振りが検出できていればその速度を基準に、無ければ無難な既定値
+    referenceRef.current =
+      peak > 0.4 ? Math.min(6, Math.max(1.4, peak * 0.85)) : 2.2;
     setScreen("countdown");
   }, []);
 
@@ -433,6 +501,8 @@ export default function GameApp() {
       {screen === "calibration" && (
         <CalibrationScreen
           handDetected={handDetected}
+          swings={calibSwings}
+          target={CALIB_TARGET}
           onDone={onCalibrationDone}
         />
       )}
