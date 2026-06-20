@@ -91,6 +91,7 @@ export class JudanEngine {
 
   private photos: PhotoCandidate[] = [];
   private pendingShot: { score: number; at: number } | null = null;
+  private photoCanvas: HTMLCanvasElement | null = null;
 
   private cursor: { x: number; y: number; vis: number } = { x: 0.5, y: 0.6, vis: 0 };
 
@@ -355,7 +356,7 @@ export class JudanEngine {
     this.updateParticles();
 
     if (this.pendingShot && now >= this.pendingShot.at) {
-      this.takePhoto(this.pendingShot.score);
+      this.takePhoto(this.pendingShot.score, now);
       this.pendingShot = null;
     }
   }
@@ -372,9 +373,19 @@ export class JudanEngine {
   private loop = () => {
     if (!this.running) return;
     const now = performance.now();
-    this.update(now);
-    this.render(now);
-    this.raf = requestAnimationFrame(this.loop);
+    // 1フレームで例外が出てもゲームを止めない（フリーズ防止）
+    try {
+      this.update(now);
+      this.render(now);
+    } catch (e) {
+      console.error("[judan] frame error (recovered):", e);
+      // 描画状態が壊れていても次素材へ進めるよう state を復帰させる
+      if (this.state === "crossed" || this.state === "judging") {
+        this.state = "cooldown";
+        this.nextSpawnAt = now + COOLDOWN_MS;
+      }
+    }
+    if (this.running) this.raf = requestAnimationFrame(this.loop);
   };
 
   // ---- 描画 ----------------------------------------------------------------
@@ -693,9 +704,10 @@ export class JudanEngine {
     this.pendingShot = { score, at: now + 120 };
   }
 
-  private takePhoto(score: number) {
+  private takePhoto(score: number, now: number) {
     try {
-      const url = this.o.canvas.toDataURL("image/jpeg", 0.82);
+      const url = this.capturePhotoFrame(now);
+      if (!url) return;
       const cand: PhotoCandidate = {
         id: `p${Date.now()}_${Math.floor(Math.random() * 1000)}`,
         dataUrl: url,
@@ -709,6 +721,50 @@ export class JudanEngine {
     } catch {
       /* 失敗しても続行 */
     }
+  }
+
+  /**
+   * 認定証用のクリーンな1枚を合成する。
+   * カメラ映像（顔が映る）＋斬撃＋粒子＋小ロゴのみ。
+   * 切り株・素材・暗幕・HUDなどの画面UIは入れない。
+   */
+  private capturePhotoFrame(now: number): string | null {
+    const cw = this.o.canvas.width;
+    const ch = this.o.canvas.height;
+    if (cw < 2 || ch < 2) return null;
+    if (!this.photoCanvas) this.photoCanvas = document.createElement("canvas");
+    const pc = this.photoCanvas;
+    pc.width = cw;
+    pc.height = ch;
+    const ctx = pc.getContext("2d");
+    if (!ctx) return null;
+
+    ctx.fillStyle = "#0c0f17";
+    ctx.fillRect(0, 0, cw, ch);
+
+    if (this.o.video && this.o.video.readyState >= 2) {
+      ctx.save();
+      ctx.translate(cw, 0);
+      ctx.scale(-1, 1); // 左右反転（自撮り）
+      drawCover(ctx, this.o.video, cw, ch);
+      ctx.restore();
+    } else if (this.o.assets.bgPlay) {
+      drawCover(ctx, this.o.assets.bgPlay, cw, ch);
+    }
+
+    this.drawSlash(ctx, cw, ch, now);
+    this.drawParticles(ctx);
+
+    ctx.save();
+    ctx.font = `700 ${Math.round(ch * 0.045)}px "Yuji Syuku", "Shippori Mincho", serif`;
+    ctx.textAlign = "right";
+    ctx.fillStyle = "rgba(247,236,203,0.92)";
+    ctx.shadowColor = "rgba(0,0,0,0.85)";
+    ctx.shadowBlur = 8;
+    ctx.fillText("柔断", cw - ch * 0.03, ch - ch * 0.035);
+    ctx.restore();
+
+    return pc.toDataURL("image/jpeg", 0.82);
   }
 }
 

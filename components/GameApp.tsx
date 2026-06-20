@@ -36,7 +36,7 @@ export default function GameApp() {
   const [mode, setMode] = useState<InputMode>("mock");
   const [muted, setMuted] = useState(false);
   const [cutCount, setCutCount] = useState(0);
-  const [remainMs, setRemainMs] = useState(60000);
+  const [remainMs, setRemainMs] = useState(40000);
   const [handDetected, setHandDetected] = useState(false);
   const [camError, setCamError] = useState<string | null>(null);
   const [result, setResult] = useState<{
@@ -263,7 +263,7 @@ export default function GameApp() {
     if (!canvas || !assetsNow) return;
     sizeCanvas();
     audioRef.current?.startBgm();
-    const duration = flags.current.demo ? 30000 : 60000;
+    const duration = flags.current.demo ? 30000 : 40000;
     setCutCount(0);
     setRemainMs(duration);
     const engine = new JudanEngine({
