@@ -1,0 +1,46 @@
+{
+  "provider": "gpt-image-2 (OpenAI)",
+  "quality": "medium",
+  "generated_this_run": 14,
+  "regen_rounds": 1,
+  "note": "gpt-image-2は透過背景非対応のため、スプライト類は純黒背景で生成し、実装側で近黒をアルファ抜き(keyBlack)してCanvas/CSSへ結線した。",
+  "assets": [
+    {
+      "category": "background",
+      "name": "夕暮れの和の庭（切り株つき）",
+      "path": "public/images/bg-garden.png",
+      "size": "1536x1024",
+      "generated": true,
+      "integrated": true,
+      "usage": "タイトル/カメラ許可/結果画面の全面背景"
+    },
+    {
+      "category": "control-skin",
+      "name": "木札ボタン外装",
+      "path": "public/images/plaque-wood.png",
+      "size": "1536x1024",
+      "generated": true,
+      "integrated": true,
+      "usage": "WoodButtonの外装。keyBlackで透過化しCSS変数--plaqueとして全主要ボタンに結線"
+    },
+    {
+      "category": "motif",
+      "name": "切り株（修行の台）",
+      "path": "public/images/stump.png",
+      "size": "1024x1024",
+      "generated": true,
+      "integrated": true,
+      "usage": "プレイ画面で素材を載せる台としてCanvasへ描画"
+    },
+    { "category": "background", "name": "夜の道場（プレイ背景）", "path": "public/images/bg-play.png", "size": "1536x1024", "generated": true, "integrated": true, "usage": "Mock時のプレイ背景" },
+    { "category": "motif", "name": "認定証 和紙背景", "path": "public/images/washi-cert.png", "size": "1024x1536", "generated": true, "integrated": true, "usage": "認定証Canvasの背景" },
+    { "category": "motif", "name": "朱印（柔断）", "path": "public/images/seal-frame.png", "size": "1024x1024", "generated": true, "integrated": true, "usage": "認定証の認定印" },
+    { "category": "control-skin", "name": "藍の暖簾", "path": "public/images/noren.png", "size": "1536x1024", "generated": true, "integrated": true, "usage": "タイトル/プレイ上部の装飾。透過化して結線" },
+    { "category": "motif", "name": "素材:豆腐", "path": "public/images/mat-tofu.png", "size": "1024x1024", "generated": true, "integrated": true, "usage": "崩壊型素材スプライト" },
+    { "category": "motif", "name": "素材:紐", "path": "public/images/mat-rope.png", "size": "1024x1024", "generated": true, "integrated": true, "usage": "しなり型素材スプライト" },
+    { "category": "motif", "name": "素材:木", "path": "public/images/mat-wood.png", "size": "1024x1024", "generated": true, "integrated": true, "usage": "硬質型素材スプライト" },
+    { "category": "motif", "name": "素材:プリン", "path": "public/images/mat-pudding.png", "size": "1024x1024", "generated": true, "integrated": true, "usage": "崩壊型素材スプライト" },
+    { "category": "motif", "name": "素材:餅", "path": "public/images/mat-mochi.png", "size": "1024x1024", "generated": true, "integrated": true, "usage": "粘着型素材スプライト" },
+    { "category": "motif", "name": "素材:ゼリー", "path": "public/images/mat-jelly.png", "size": "1024x1024", "generated": true, "integrated": true, "usage": "揺動型素材スプライト" }
+  ]
+}
