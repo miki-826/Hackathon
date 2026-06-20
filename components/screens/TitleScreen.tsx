@@ -90,32 +90,68 @@ export default function TitleScreen({
 }
 
 function HelpOverlay({ onClose }: { onClose: () => void }) {
+  const [slide, setSlide] = useState(0);
+
   return (
     <div
       className="absolute inset-0 z-30 flex items-center justify-center bg-sumi/80 px-6"
       onClick={onClose}
     >
       <div
-        className="ink-panel max-w-md rounded-lg p-7"
+        className={`ink-panel relative rounded-lg p-4 sm:p-7 ${
+          slide === 0 ? "w-full max-w-6xl" : "max-w-md"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="font-brush text-2xl text-kin">遊び方</h2>
-        <ul className="mt-4 space-y-2 font-mincho text-sm leading-relaxed text-washi/90">
-          <li>① カメラの前で手刀（手の側面）を振る。Mockはドラッグで斬る。</li>
-          <li>② 切り株の上に素材が一つずつ現れる。</li>
-          <li>
-            ③ <span className="text-kin">紐は速く鋭く</span>、
-            <span className="text-kin">豆腐はやさしく</span>。素材で切り方を変える。
-          </li>
-          <li>④ 一分間で正しく斬れた数が、あなたの段位になる。</li>
-        </ul>
-        <p className="mt-4 font-mincho text-xs text-washi/60">
-          速さ・残り時間は表示されません。表示されるのは「斬った数」だけ。
-        </p>
-        <p className="mt-3 font-mincho text-xs leading-relaxed text-kin/90">
-          ⚠ Zoom等の他アプリでカメラ使用中はカメラを起動できません。先に終了してください。
-        </p>
-        <div className="mt-6 text-center">
+        {slide === 0 ? (
+          <img
+            src="/images/how-to-play.png"
+            alt="柔断のゲーム概要、遊び方、技術ポイントをまとめた説明"
+            className="mx-auto max-h-[72vh] w-full object-contain"
+          />
+        ) : (
+          <>
+            <h2 className="font-brush text-2xl text-kin">遊び方</h2>
+            <ul className="mt-4 space-y-2 font-mincho text-sm leading-relaxed text-washi/90">
+              <li>① カメラの前で手刀（手の側面）を振る。Mockはドラッグで斬る。</li>
+              <li>② 切り株の上に素材が一つずつ現れる。</li>
+              <li>
+                ③ <span className="text-kin">紐は速く鋭く</span>、
+                <span className="text-kin">豆腐はやさしく</span>。素材で切り方を変える。
+              </li>
+              <li>④ 一分間で正しく斬れた数が、あなたの段位になる。</li>
+            </ul>
+            <p className="mt-4 font-mincho text-xs text-washi/60">
+              速さ・残り時間は表示されません。表示されるのは「斬った数」だけ。
+            </p>
+            <p className="mt-3 font-mincho text-xs leading-relaxed text-kin/90">
+              ⚠ Zoom等の他アプリでカメラ使用中はカメラを起動できません。先に終了してください。
+            </p>
+          </>
+        )}
+
+        <div className="mt-4 flex items-center justify-center gap-4">
+          <button
+            type="button"
+            aria-label="前の説明へ"
+            className="rounded border border-kin/50 px-3 py-1 font-mincho text-washi disabled:opacity-30"
+            disabled={slide === 0}
+            onClick={() => setSlide((current) => Math.max(0, current - 1))}
+          >
+            ‹
+          </button>
+          <span className="font-mincho text-xs text-washi/60">{slide + 1} / 2</span>
+          <button
+            type="button"
+            aria-label="次の説明へ"
+            className="rounded border border-kin/50 px-3 py-1 font-mincho text-washi disabled:opacity-30"
+            disabled={slide === 1}
+            onClick={() => setSlide((current) => Math.min(1, current + 1))}
+          >
+            ›
+          </button>
+        </div>
+        <div className="mt-4 text-center">
           <button
             className="rounded border border-kin/60 px-6 py-2 font-mincho text-washi hover:bg-kin/15"
             onClick={onClose}
