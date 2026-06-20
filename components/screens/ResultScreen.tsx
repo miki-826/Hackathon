@@ -10,6 +10,7 @@ import {
 } from "@/lib/certificate/draw-certificate";
 import type { AudioController } from "@/lib/audio/audio-controller";
 import WoodButton from "@/components/ui/WoodButton";
+import LeaderboardPanel from "@/components/result/LeaderboardPanel";
 
 type Props = {
   assets: AppAssets | null;
@@ -180,6 +181,8 @@ export default function ResultScreen({ assets, result, onRetry, audio }: Props) 
             </p>
           </div>
         </div>
+
+        <LeaderboardPanel score={cutCount} rank={rank} />
       </div>
     </div>
   );
