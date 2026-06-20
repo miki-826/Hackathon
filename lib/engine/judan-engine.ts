@@ -240,6 +240,10 @@ export class JudanEngine {
           if (this.current) this.current.hitDone = true;
           this.o.audio.slash();
           this.spawnSlashFx(sample);
+          // 交差したフレームが停止閾値も下回る場合、下の停止処理で
+          // crossed を idle に戻すと hitDone の素材が永久に残ってしまう。
+          // 交差成立を優先し、FOLLOW_MS 後の判定まで状態を保持する。
+          return;
         }
       }
       if (v < STOP) {

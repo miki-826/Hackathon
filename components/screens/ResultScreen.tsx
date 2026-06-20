@@ -25,6 +25,7 @@ export default function ResultScreen({ assets, result, onRetry, audio }: Props) 
   const [selectedId, setSelectedId] = useState<string | null>(
     candidates[0]?.id ?? null
   );
+  const [comment, setComment] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -32,6 +33,29 @@ export default function ResultScreen({ assets, result, onRetry, audio }: Props) 
     audio?.stopBgm();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/comment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ score: cutCount, rank }),
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("comment request failed");
+        return response.json() as Promise<{ comment?: unknown }>;
+      })
+      .then((data) => {
+        if (typeof data.comment === "string") setComment(data.comment);
+      })
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setComment("師範、感動で言葉を失いました。これはこれで高評価です。");
+        }
+      });
+    return () => controller.abort();
+  }, [cutCount, rank]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -63,10 +87,19 @@ export default function ResultScreen({ assets, result, onRetry, audio }: Props) 
       <div className="relative z-10 mx-auto flex min-h-full max-w-5xl flex-col items-center gap-6 px-5 py-8">
         <div className="drift-in text-center">
           <p className="font-mincho text-sm tracking-[0.4em] text-kin">一分間之斬</p>
+          <p className="mt-2 font-mincho text-sm tracking-[0.2em] text-washi/80">
+            スコア {cutCount}
+          </p>
           <p className="font-brush text-6xl text-washi drop-shadow-[0_3px_10px_rgba(0,0,0,0.9)]">
             {toKanjiNumber(cutCount)}断
           </p>
           <p className="mt-2 font-brush text-3xl text-kin">柔断 {rank}</p>
+          <p
+            className="mx-auto mt-3 min-h-6 max-w-2xl px-3 font-mincho text-sm leading-relaxed text-washi/85"
+            aria-live="polite"
+          >
+            {comment ?? "師範が講評をしたためています…"}
+          </p>
         </div>
 
         <div className="flex w-full flex-col items-center gap-6 lg:flex-row lg:items-start lg:justify-center">
